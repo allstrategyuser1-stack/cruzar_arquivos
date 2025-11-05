@@ -31,9 +31,9 @@ if desc_file and classif_file:
         classif = pd.read_csv(classif_file, dtype=str, sep=sep)
 
         # Verificar colunas obrigatórias
-        if not {"Nome", "Código"}.issubset(desc.columns) or not {"Nome", "Estrutura"}.issubset(classif.columns):
+        if not {"Nome", "Código"}.issubset(desc.columns) or not {"Nome", "Código"}.issubset(classif.columns):
             st.error("Os arquivos devem conter as colunas corretas: \
-                     **Descrição:** Nome, Código | **Classificação:** Nome, Estrutura")
+                     **Descrição:** Nome, Código | **Classificação:** Nome, Código")
         else:
             # Normalizar nomes
             desc["nome_norm"] = desc["Nome"].apply(normalize_text)
@@ -53,7 +53,7 @@ if desc_file and classif_file:
             resultado.columns = [
                 "Código (Descrição)",
                 "Nome (Descrição)",
-                "Estrutura (Classificação)",
+                "Código (Classificação correspondido)",
                 "Nome (Classificação correspondido)"
             ]
 
