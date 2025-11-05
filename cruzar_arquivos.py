@@ -46,11 +46,17 @@ if desc_file and classif_file:
             # Detectar duplicidades na classificação
             duplicadas = classif[classif.duplicated("nome_norm", keep=False)]["nome_norm"].unique()
 
-            # Merge
+            # Merge (join pela coluna normalizada)
             merged = pd.merge(desc, classif, on="nome_norm", how="left", suffixes=("_desc", "_classif"))
 
             # Limpa registros com mais de uma correspondência
             merged.loc[merged["nome_norm"].isin(duplicadas), ["Código_classif", "Nome_classif"]] = None
+
+            # Cria a coluna "Descrição Final" apenas quando há classificação identificada
+            merged["Descrição Final"] = merged.apply(
+                lambda x: x["Código_desc"] if pd.notna(x["Código_classif"]) else "",
+                axis=1
+            )
 
             # DataFrame final com 5 colunas
             resultado = pd.DataFrame({
@@ -58,7 +64,7 @@ if desc_file and classif_file:
                 "Nome (Descrição)": merged["Nome_desc"],
                 "Código (Classificação)": merged["Código_classif"],
                 "Nome (Classificação)": merged["Nome_classif"],
-                "Descrição Final": merged["Código_desc"]  # agora usa o código da descrição
+                "Descrição Final": merged["Descrição Final"]
             })
 
             st.success("✅ Cruzamento realizado com sucesso!")
