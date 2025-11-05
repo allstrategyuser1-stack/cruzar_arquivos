@@ -11,7 +11,7 @@ Carregue dois arquivos CSV — um de **Descrição** e outro de **Classificaçã
 O sistema fará o cruzamento pelo nome (ignorando acentuação e maiúsculas/minúsculas).
 """)
 
-# Função para normalizar texto
+# Função para normalizar texto (remove acentos e deixa minúsculo)
 def normalize_text(s):
     if pd.isna(s):
         return ""
@@ -29,10 +29,11 @@ if desc_file and classif_file:
     sep = st.radio("Selecione o delimitador dos arquivos CSV:", options=[";", ","], index=0, horizontal=True)
 
     try:
+        # Ler os arquivos
         desc = pd.read_csv(desc_file, dtype=str, sep=sep)
         classif = pd.read_csv(classif_file, dtype=str, sep=sep)
 
-        # Verificação das colunas
+        # Validar colunas
         if not {"Nome", "Código"}.issubset(desc.columns):
             st.error("❌ O arquivo de **Descrição** deve conter as colunas: Código, Nome.")
         elif not {"Nome", "Código"}.issubset(classif.columns):
@@ -57,7 +58,7 @@ if desc_file and classif_file:
                 "Nome (Descrição)": merged["Nome_desc"],
                 "Código (Classificação)": merged["Código_classif"],
                 "Nome (Classificação)": merged["Nome_classif"],
-                "Descrição Final": merged["Código_classif"]  # usa o código da classificação identificada
+                "Descrição Final": merged["Código_desc"]  # agora usa o código da descrição
             })
 
             st.success("✅ Cruzamento realizado com sucesso!")
