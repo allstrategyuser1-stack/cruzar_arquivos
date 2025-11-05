@@ -1,12 +1,15 @@
 import streamlit as st
 import pandas as pd
 import unicodedata
-from io import BytesIO
 
 st.set_page_config(page_title="Cruzamento Descrição × Classificação", page_icon="🔗", layout="wide")
 
 st.title("🔗 Cruzamento Descrição × Classificação")
-st.write("Carregue dois arquivos CSV (`Descrição` e `Classificação`) para cruzar por nome, ignorando acentuação e maiúsculas/minúsculas.")
+st.write("""
+Carregue dois arquivos CSV — um de **Descrição** e outro de **Classificação**, cada um contendo as colunas:
+**Código** e **Nome**.
+O sistema fará o cruzamento pelo nome (ignorando acentuação e maiúsculas/minúsculas).
+""")
 
 # Função para normalizar texto
 def normalize_text(s):
@@ -23,39 +26,39 @@ with col2:
     classif_file = st.file_uploader("📂 Arquivo de Classificação", type=["csv"])
 
 if desc_file and classif_file:
-    # Opção de separador
     sep = st.radio("Selecione o delimitador dos arquivos CSV:", options=[";", ","], index=0, horizontal=True)
 
     try:
         desc = pd.read_csv(desc_file, dtype=str, sep=sep)
         classif = pd.read_csv(classif_file, dtype=str, sep=sep)
 
-        # Verificar colunas obrigatórias
-        if not {"Nome", "Código"}.issubset(desc.columns) or not {"Nome", "Código"}.issubset(classif.columns):
-            st.error("Os arquivos devem conter as colunas corretas: \
-                     **Descrição:** Nome, Código | **Classificação:** Nome, Código")
+        # Verificação das colunas
+        if not {"Nome", "Código"}.issubset(desc.columns):
+            st.error("❌ O arquivo de **Descrição** deve conter as colunas: Código, Nome.")
+        elif not {"Nome", "Código"}.issubset(classif.columns):
+            st.error("❌ O arquivo de **Classificação** deve conter as colunas: Código, Nome.")
         else:
-            # Normalizar nomes
+            # Normalização
             desc["nome_norm"] = desc["Nome"].apply(normalize_text)
             classif["nome_norm"] = classif["Nome"].apply(normalize_text)
 
-            # Detectar duplicidades na Classificação
+            # Detectar duplicidades na classificação
             duplicadas = classif[classif.duplicated("nome_norm", keep=False)]["nome_norm"].unique()
 
-            # Fazer merge
+            # Merge
             merged = pd.merge(desc, classif, on="nome_norm", how="left", suffixes=("_desc", "_classif"))
 
-            # Remover correspondências duplicadas
-            merged.loc[merged["nome_norm"].isin(duplicadas), ["Estrutura", "Nome_classif"]] = None
+            # Limpa registros com mais de uma correspondência
+            merged.loc[merged["nome_norm"].isin(duplicadas), ["Código_classif", "Nome_classif"]] = None
 
-            # Selecionar colunas finais
-            resultado = merged[["Código", "Nome_desc", "Estrutura", "Nome_classif"]]
-            resultado.columns = [
-                "Código (Descrição)",
-                "Nome (Descrição)",
-                "Código (Classificação correspondido)",
-                "Nome (Classificação correspondido)"
-            ]
+            # DataFrame final com 5 colunas
+            resultado = pd.DataFrame({
+                "Código (Descrição)": merged["Código_desc"],
+                "Nome (Descrição)": merged["Nome_desc"],
+                "Código (Classificação)": merged["Código_classif"],
+                "Nome (Classificação)": merged["Nome_classif"],
+                "Descrição Final": merged["Código_classif"]  # usa o código da classificação identificada
+            })
 
             st.success("✅ Cruzamento realizado com sucesso!")
 
