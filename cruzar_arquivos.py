@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import re
 from io import StringIO
 
 st.set_page_config(page_title="Formatar Estrutura", page_icon="📊", layout="centered")
@@ -9,11 +10,46 @@ st.write("Envie o arquivo `.xlsx` da estrutura e o sistema formatará automatica
 
 uploaded_file = st.file_uploader("Selecione o arquivo Excel (.xlsx)", type=["xlsx"])
 
+# 🔧 Função para padronizar o código (dois dígitos por parte)
 def padronizar_codigo(codigo):
-    """Garante que cada parte do código tenha 2 dígitos."""
     partes = codigo.split(".")
     partes_formatadas = [f"{int(p):02d}" if p.isdigit() else p for p in partes]
     return ".".join(partes_formatadas)
+
+# 🔧 Função para limpar e encurtar nomes longos (>45 caracteres)
+def ajustar_nome(nome):
+    if not isinstance(nome, str):
+        return ""
+
+    nome = nome.strip()
+    if len(nome) <= 45:
+        return nome  # mantém o original se já estiver no limite
+
+    nome_limpo = nome.upper()
+    nome_limpo = re.sub(r"[-_/()]+", " ", nome_limpo)
+    nome_limpo = re.sub(r"\s+", " ", nome_limpo)
+
+    substituicoes = {
+        "OPERACIONAL": "OPERAC.",
+        "COOPERADO": "COOP.",
+        "PREMIUM": "PREM.",
+        "ECONOMICO": "ECON.",
+        "FEDERATIVO": "FEDERAT.",
+        "PARTICIPATIVO": "PARTIC.",
+        "CONVENIO": "CONV.",
+        "UNIMED": "UNIM.",
+        "PLANO": "PLN.",
+        "PAGAMENTO": "PAGTO",
+        "SUPERIOR": "SUP.",
+        "HOSPITALAR": "HOSPIT."
+    }
+
+    for termo, sub in substituicoes.items():
+        nome_limpo = nome_limpo.replace(termo, sub)
+
+    # Corta para no máximo 45 caracteres
+    nome_final = nome_limpo[:45].rstrip()
+    return nome_final
 
 if uploaded_file:
     try:
@@ -28,7 +64,7 @@ if uploaded_file:
             if pd.notna(row[0]):
                 nivel_1_raw = str(row[0]).strip().replace(".0", "")
                 nivel_1 = padronizar_codigo(nivel_1_raw)
-                nome_1 = str(row[1]).strip() if pd.notna(row[1]) else ""
+                nome_1 = ajustar_nome(str(row[1]).strip() if pd.notna(row[1]) else "")
                 dados_formatados.append({
                     "Estrutura": nivel_1,
                     "Nível superior": "",
@@ -39,7 +75,7 @@ if uploaded_file:
             # Coluna 1: código do nível 2
             elif pd.notna(row[1]) and str(row[1]).replace(".", "").isdigit():
                 nivel_2 = padronizar_codigo(str(row[1]).strip())
-                nome_2 = str(row[2]).strip() if pd.notna(row[2]) else ""
+                nome_2 = ajustar_nome(str(row[2]).strip() if pd.notna(row[2]) else "")
                 dados_formatados.append({
                     "Estrutura": nivel_2,
                     "Nível superior": nivel_1,
@@ -50,7 +86,7 @@ if uploaded_file:
             # Coluna 2: código do nível 3
             elif pd.notna(row[2]) and str(row[2]).replace(".", "").isdigit():
                 nivel_3 = padronizar_codigo(str(row[2]).strip())
-                nome_3 = str(row[3]).strip() if pd.notna(row[3]) else ""
+                nome_3 = ajustar_nome(str(row[3]).strip() if pd.notna(row[3]) else "")
                 dados_formatados.append({
                     "Estrutura": nivel_3,
                     "Nível superior": nivel_2,
@@ -61,7 +97,7 @@ if uploaded_file:
             # Coluna 3: código do nível 4 (item A)
             elif pd.notna(row[3]) and str(row[3]).replace(".", "").isdigit():
                 estrutura = padronizar_codigo(str(row[3]).strip())
-                nome = str(row[4]).strip() if pd.notna(row[4]) else ""
+                nome = ajustar_nome(str(row[4]).strip() if pd.notna(row[4]) else "")
                 dados_formatados.append({
                     "Estrutura": estrutura,
                     "Nível superior": nivel_3,
@@ -76,7 +112,7 @@ if uploaded_file:
         df_final.to_csv(csv_buffer, sep=";", index=False)
         csv_data = csv_buffer.getvalue()
 
-        st.success("✅ Estrutura formatada com sucesso!")
+        st.success(f"✅ Estrutura formatada com sucesso! {len(df_final)} registros gerados.")
         st.download_button(
             label="📥 Baixar CSV formatado",
             data=csv_data,
