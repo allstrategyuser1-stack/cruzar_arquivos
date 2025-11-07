@@ -10,20 +10,17 @@ st.write("Envie um arquivo Excel (.xlsx) com as informações brutas e o app for
 uploaded_file = st.file_uploader("Selecione o arquivo Excel (.xlsx)", type=["xlsx"])
 
 if uploaded_file:
-    # Lê a primeira aba do Excel
     try:
         df_raw = pd.read_excel(uploaded_file)
+    except ImportError:
+        st.error("❌ O pacote 'openpyxl' não está instalado. Execute `pip install openpyxl` e reinicie o app.")
+        st.stop()
     except Exception as e:
         st.error(f"Erro ao ler o arquivo Excel: {e}")
         st.stop()
 
-    st.subheader("📄 Pré-visualização dos dados importados")
-    st.dataframe(df_raw.head(), use_container_width=True)
-
-    # Detecta a primeira coluna com código e nome
-    # Supõe que a primeira coluna contém algo como "01	ENTRADAS"
+    # Considera a primeira coluna como contendo os dados brutos
     col = df_raw.columns[0]
-
     lines = df_raw[col].dropna().astype(str).tolist()
 
     data = []
@@ -67,5 +64,6 @@ if uploaded_file:
     )
 
     st.success("Arquivo formatado com sucesso! ✅")
+
 else:
     st.info("Envie um arquivo Excel (.xlsx) para começar.")
