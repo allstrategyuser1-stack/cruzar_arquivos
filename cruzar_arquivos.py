@@ -5,9 +5,15 @@ from io import StringIO
 st.set_page_config(page_title="Formatar Estrutura", page_icon="📊", layout="centered")
 
 st.title("📊 Formatador de Estrutura Hierárquica")
-st.write("Faça upload de um arquivo `.xlsx` no formato da estrutura para gerar o CSV formatado.")
+st.write("Envie o arquivo `.xlsx` da estrutura e o sistema formatará automaticamente os níveis e códigos.")
 
 uploaded_file = st.file_uploader("Selecione o arquivo Excel (.xlsx)", type=["xlsx"])
+
+def padronizar_codigo(codigo):
+    """Garante que cada parte do código tenha 2 dígitos."""
+    partes = codigo.split(".")
+    partes_formatadas = [f"{int(p):02d}" if p.isdigit() else p for p in partes]
+    return ".".join(partes_formatadas)
 
 if uploaded_file:
     try:
@@ -20,7 +26,8 @@ if uploaded_file:
         for _, row in df.iterrows():
             # Coluna 0: código do nível 1
             if pd.notna(row[0]):
-                nivel_1 = str(row[0]).strip().replace(".0", "")
+                nivel_1_raw = str(row[0]).strip().replace(".0", "")
+                nivel_1 = padronizar_codigo(nivel_1_raw)
                 nome_1 = str(row[1]).strip() if pd.notna(row[1]) else ""
                 dados_formatados.append({
                     "Estrutura": nivel_1,
@@ -31,7 +38,7 @@ if uploaded_file:
             
             # Coluna 1: código do nível 2
             elif pd.notna(row[1]) and str(row[1]).replace(".", "").isdigit():
-                nivel_2 = str(row[1]).strip()
+                nivel_2 = padronizar_codigo(str(row[1]).strip())
                 nome_2 = str(row[2]).strip() if pd.notna(row[2]) else ""
                 dados_formatados.append({
                     "Estrutura": nivel_2,
@@ -42,7 +49,7 @@ if uploaded_file:
             
             # Coluna 2: código do nível 3
             elif pd.notna(row[2]) and str(row[2]).replace(".", "").isdigit():
-                nivel_3 = str(row[2]).strip()
+                nivel_3 = padronizar_codigo(str(row[2]).strip())
                 nome_3 = str(row[3]).strip() if pd.notna(row[3]) else ""
                 dados_formatados.append({
                     "Estrutura": nivel_3,
@@ -53,7 +60,7 @@ if uploaded_file:
 
             # Coluna 3: código do nível 4 (item A)
             elif pd.notna(row[3]) and str(row[3]).replace(".", "").isdigit():
-                estrutura = str(row[3]).strip()
+                estrutura = padronizar_codigo(str(row[3]).strip())
                 nome = str(row[4]).strip() if pd.notna(row[4]) else ""
                 dados_formatados.append({
                     "Estrutura": estrutura,
@@ -64,7 +71,7 @@ if uploaded_file:
 
         df_final = pd.DataFrame(dados_formatados)
 
-        # Converter para CSV (separado por ;)
+        # Converter para CSV separado por ";"
         csv_buffer = StringIO()
         df_final.to_csv(csv_buffer, sep=";", index=False)
         csv_data = csv_buffer.getvalue()
